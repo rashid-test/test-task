@@ -5,7 +5,7 @@ test-task-lib - библиотека (SDK library for service API)
     Использование:
         const Lib = require('test-task-lib');
         const testLib = new Lib(server, username, password);
-        ...
+        
         ... await testLib.listPayments();
         ... await testLib.getPayment(id);
         ... await testLib.createPayment(payment);
