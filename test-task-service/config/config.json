@@ -1,0 +1,22 @@
+{
+    "development": {
+        "config_id": "development",
+        "port": 8000,
+        "database": ":memory:",
+        "SECRET": "f4O%e5|8wo$|iGjTOfB~RT6AC"
+    },
+    "testing": {
+        "config_id": "testing",
+        "database": "db-file-test"
+    },
+    "staging": {
+        "config_id": "staging",
+        "port": 8080,
+        "database": "db-file-stag"
+    },
+    "production": {
+        "config_id": "production",
+        "port": 8080,
+        "database": "db-file-prod"
+    }
+}
