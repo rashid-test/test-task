@@ -12,5 +12,5 @@ test-task-lib - библиотека (SDK library for service API)
         ... await testLib.approvePayment(id);
         ... await testLib.cancelPayment(id);
 
-test-task-app - приложение использующее test-task-lib
+test-task-app - приложение использующее test-task-lib,
 test-task-service - тестовый сервис (third party payments service) для проверки библиотеки
