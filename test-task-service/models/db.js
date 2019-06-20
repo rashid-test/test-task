@@ -3,12 +3,11 @@ const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database(global.gConfig.database, err =>
     err ? console.error(err) : console.log('Connected to the SQlite database'));
 
-// промисифицируем основные методы
 const { promisify } = require('util');
 db.getAsync = promisify(db.get);
 db.allAsync = promisify(db.all);
 
-// обертка для авто-промисифицирования метода run всех результатов db.prepare
+// wrapper for auto-promisify the run method of all db.prepare results
 const originalPrepare = db.prepare.bind(db);
 db.prepare = (...args) => {
     const stmt = originalPrepare(...args);
@@ -16,7 +15,7 @@ db.prepare = (...args) => {
     return stmt;
 };
 
-// Database initialization
+// database initialization
 db.serialize(() => {
     let stmt;
 
@@ -71,7 +70,7 @@ module.exports = {
         }
 
         const stmt = db.prepare('INSERT INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?)');
-        await stmt.runAsync([ // порядок важен, поэтому для надежности вместо Object.values() вот так...
+        await stmt.runAsync([ // order is important, so we can't use Object.values() instead
             payment.id,
             payment.payeeId,
             payment.payerId,

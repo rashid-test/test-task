@@ -1,8 +1,8 @@
 # test-task
 
-test-task-lib - библиотека (SDK library for service API)
+test-task-lib - SDK library for service API
 
-    Использование:
+    Usage:
         const Lib = require('test-task-lib');
         const testLib = new Lib(server, username, password);
         
@@ -12,5 +12,5 @@ test-task-lib - библиотека (SDK library for service API)
         ... await testLib.approvePayment(id);
         ... await testLib.cancelPayment(id);
 
-test-task-app - приложение использующее test-task-lib,
-test-task-service - тестовый сервис (third party payments service) для проверки библиотеки
+test-task-app - test app for test-task-lib,
+test-task-service - test service (a third party payments service) for test-task-lib

@@ -2,12 +2,12 @@ const express = require('express');
 require('express-async-errors');
 const app = express();
 
-// загружаем настройки в global.gConfig
+// load settings
 require('./config/config.js');
 
 app.use(express.json());
 
-// проверка токена для всех урлов кроме выдающего токен
+// check token for all URLs except authorizing one
 const jwt = require('express-jwt');
 app.use(jwt({ secret: global.gConfig.SECRET }).unless({ path: ['/v1/authenticate'] }));
 
@@ -28,6 +28,12 @@ app.use((err, req, res, next) => {
     let code, message;
 
     switch (err.name) {
+
+        case 'UnknownUserError':
+            code = 'ERR_LOGON_FAILURE';
+            message = 'Cannot obtain token with supplied username and password';
+            res.status(401).send({ code, message });
+            break;
 
         case 'UnauthorizedError':
             if (err.inner.name === 'TokenExpiredError') {

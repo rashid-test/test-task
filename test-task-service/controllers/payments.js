@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const errors = require('./errors');
 const validate = require('uuid-validate');
 
 module.exports = {
@@ -13,7 +14,7 @@ module.exports = {
         const id = req.params.id;
 
         if (!validate(id))
-            throwBadID(id);
+            errors.throwBadID(id);
 
         let result = await db.getPayment(id);
 
@@ -33,14 +34,14 @@ module.exports = {
             currency,
             comment } = req.body;
 
-        const errors = [];
+        const validationErrors = [];
 
         [{ payeeId }, { payerId }, { paymentSystem }, { paymentMethod }, { amount }, { currency }].forEach(item => {
             for (let prop in item) {
                 if (item.hasOwnProperty(prop)) {
                     let val = item[prop];
                     if (typeof val === 'undefined') {
-                        errors.push({
+                        validationErrors.push({
                             message: `'${prop}' field is required`,
                             path: [prop],
                             value: 'null'
@@ -50,21 +51,22 @@ module.exports = {
             }
         });
 
-        // проверка на дробные значения центов
+        // check for fractional cents (not allowed)
         if (!Number.isInteger(amount * 100))
-            errors.push({
+            validationErrors.push({
                 message: '\'amount\' must be a number and have no more than 2 decimals',
                 path: ['amount'],
                 value: amount ? amount : 'null'
             });
 
-        // дополнительные проверки
+        // additional checks if required
         // ...
 
-        if (errors.length)
-            throwValidationError(errors);
+        if (validationErrors.length)
+            errors.throwValidationError(validationErrors);
 
-        // храним сумму в центах (копейках) для исключения ошибок потери точности на операциях
+        // we keep the amount in cents to eliminate errors of accuracy loss
+        // on math operations (see IEEE 754 floating point number problems)
         amount *= 100;
 
         if (comment === '')
@@ -80,7 +82,7 @@ module.exports = {
             comment
         });
 
-        // формируем ответ, порядок полей должен быть конкретный
+        // assemble the answer, the order of the fields should be specific
         const result = {
             id: payment.id,
             payeeId: payment.payeeId,
@@ -98,17 +100,17 @@ module.exports = {
         res.status(201).send(result);
     },
 
-    // Approves a payment, effectively it moves money from a payer account to a payee account.
+    // Approves a payment
     async approve(req, res) {
         const id = req.params.id;
 
         if (!validate(id))
-            throwBadID(id);
+            errors.throwBadID(id);
 
         const payment = await db.getPayment(id);
 
         if (payment && payment.status == 'canceled')
-            throwError('CannotApproveError');
+            errors.throwError('CannotApproveError');
 
         await db.approvePayment(id);
         res.sendStatus(200);
@@ -119,31 +121,14 @@ module.exports = {
         const id = req.params.id;
 
         if (!validate(id))
-            throwBadID(id);
+            errors.throwBadID(id);
 
         const payment = await db.getPayment(id);
 
         if (payment && payment.status == 'approved')
-            throwError('CannotCancelError');
+            errors.throwError('CannotCancelError');
 
         await db.cancelPayment(id);
         res.sendStatus(200);
     }
-};
-
-function throwError(name) {
-    const err = new Error();
-    err.name = name;
-    throw err;
-}
-
-function throwValidationError(details) {
-    const err = new Error();
-    err.name = 'ValidationError';
-    err.details = details;
-    throw err;
-}
-
-function throwBadID(id) {
-    throwValidationError([{ message: 'bad ID - must be a valid UUID', path: ['id'], value: id }])
 }

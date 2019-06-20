@@ -1,9 +1,5 @@
 const axios = require('axios');
 
-function resultHandler(result) {
-    return result.data;
-}
-
 function errorHandler(error) {
     if (error.response && error.response.data) {
         const { code, message, details } = error.response.data;
@@ -22,67 +18,63 @@ function errorHandler(error) {
     throw error;
 }
 
-// проверка токена (истек ли срок) и получение
+// check token and refresh if expired
 async function auth(obj) {
     if (!obj.token || obj.expires < Date.now()) {
 
-        await axios.post(`${obj.server}/v1/authenticate`,
+        await obj.instance.post('/v1/authenticate',
             { username: obj.username, password: obj.password })
-            .then(res => {
-                const { authToken, expiresIn } = res.data;
+            .then(response => {
+                const { authToken, expiresIn } = response;
 
                 obj.token = authToken;
                 obj.expires = Date.parse(expiresIn);
-            })
-            .catch(() => false);
+            });
     }
 }
 
 module.exports = class {
 
     constructor(server, username, password) {
-        this.server = server;
         this.username = username;
         this.password = password;
 
-        axios.interceptors.request.use(async config => {
-            if (config.url && !config.url.includes('/v1/authenticate')) {
+        this.instance = axios.create({ baseURL: server });
+
+        // intercept requests (add token)
+        this.instance.interceptors.request.use(async config => {
+            if (!config.url.includes('/v1/authenticate')) {
                 await auth(this);
                 config.headers.Authorization = `Bearer ${this.token}`;
             }
             return config;
         }, error => Promise.reject(error));
+
+        // add a response interceptor
+        this.instance.interceptors.response.use(response => response.data,
+            error => errorHandler(error));
     }
 
     // API endpoints
+    // ...
 
     async listPayments() {
-        return await axios.get(`${this.server}/v1/payments`)
-            .then(resultHandler)
-            .catch(errorHandler);
+        return await this.instance.get(`/v1/payments`);
     }
 
     async getPayment(id) {
-        return await axios.get(`${this.server}/v1/payment/${id}`)
-            .then(resultHandler)
-            .catch(errorHandler);
+        return await this.instance.get(`/v1/payment/${id}`);
     }
 
     async createPayment(payment) {
-        return await axios.post(`${this.server}/v1/payments`, payment)
-            .then(resultHandler)
-            .catch(errorHandler);
+        return await this.instance.post(`/v1/payments`, payment);
     }
 
     async approvePayment(id) {
-        return await axios.put(`${this.server}/v1/payments/${id}/approve`)
-            .then(resultHandler)
-            .catch(errorHandler);
+        return await this.instance.put(`/v1/payments/${id}/approve`);
     }
 
     async cancelPayment(id) {
-        return await axios.put(`${this.server}/v1/payments/${id}/cancel`)
-            .then(resultHandler)
-            .catch(errorHandler);
+        return await this.instance.put(`/v1/payments/${id}/cancel`);
     }
 }
